@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestione Aziende</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        input { display:block; margin-bottom:10px; padding:5px; width:300px; }
+        button { padding:8px 12px; margin-top:5px; }
+        table { border-collapse: collapse; margin-top:30px; }
+        th, td { border:1px solid #ccc; padding:8px; }
+        th { background:#f0f0f0; }
+    </style>
+</head>
+<body>
+
+<h2>Inserisci Azienda</h2>
+
+<input type="text" id="ragione_sociale" placeholder="Ragione sociale">
+<input type="text" id="partita_iva" placeholder="Partita IVA">
+<input type="text" id="sede_legale" placeholder="Sede legale">
+<input type="text" id="sede_operativa" placeholder="Sede operativa">
+
+<button onclick="salvaAzienda()">Salva</button>
+
+<h2>Elenco Aziende</h2>
+<button onclick="caricaAziende()">Aggiorna elenco</button>
+
+<table id="tabellaAziende">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Ragione Sociale</th>
+            <th>Partita IVA</th>
+            <th>Sede Legale</th>
+            <th>Sede Operativa</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+async function salvaAzienda() {
+    const dati = {
+        ragione_sociale: document.getElementById("ragione_sociale").value,
+        partita_iva: document.getElementById("partita_iva").value,
+        sede_legale: document.getElementById("sede_legale").value,
+        sede_operativa: document.getElementById("sede_operativa").value
+    };
+
+    const risposta = await fetch("insert.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dati)
+    });
+
+    const risultato = await risposta.json();
+    alert(risultato.successo ? "Azienda inserita" : risultato.errore);
+    caricaAziende();
+}
+
+async function caricaAziende() {
+    const risposta = await fetch("list.php");
+    const aziende = await risposta.json();
+
+    const tbody = document.querySelector("#tabellaAziende tbody");
+    tbody.innerHTML = "";
+
+    aziende.forEach(a => {
+        const riga = `
+            <tr>
+                <td>${a.codice_azienda}</td>
+                <td>${a.ragione_sociale}</td>
+                <td>${a.partita_iva}</td>
+                <td>${a.sede_legale}</td>
+                <td>${a.sede_operativa}</td>
+            </tr>`;
+        tbody.innerHTML += riga;
+    });
+}
+
+caricaAziende();
+</script>
+
+</body>
+</html>
