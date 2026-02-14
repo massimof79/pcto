@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestione Tutor Aziendale</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { max-width: 520px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
+    label { display: block; margin-top: 10px; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 10px 12px; cursor: pointer; }
+    .msg { margin: 12px 0; padding: 10px; border-radius: 6px; }
+    .ok { background: #e7f6e7; border: 1px solid #9fd39f; }
+    .err { background: #fde8e8; border: 1px solid #f2a3a3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f3f3f3; }
+  </style>
+</head>
+<body>
+
+  <h2>TUTOR_AZIENDALE: inserimento e lettura</h2>
+
+  <form id="tutorForm" autocomplete="off">
+    <label>Cognome</label>
+    <input type="text" name="cognome" required />
+
+    <label>Nome</label>
+    <input type="text" name="nome" required />
+
+    <label>Email</label>
+    <input type="email" name="email" required />
+
+    <label>Ruolo</label>
+    <input type="text" name="ruolo" required />
+
+    <button type="submit">Inserisci tutor</button>
+  </form>
+
+  <div id="message"></div>
+
+  <h3>Elenco tutor</h3>
+  <button id="reloadBtn" type="button">Ricarica elenco</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Codice</th>
+        <th>Cognome</th>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Ruolo</th>
+      </tr>
+    </thead>
+    <tbody id="tutorBody"></tbody>
+  </table>
+
+<script>
+  const API_URL = "api_tutor.php";
+
+  const form = document.getElementById("tutorForm");
+  const msgBox = document.getElementById("message");
+  const tbody = document.getElementById("tutorBody");
+  const reloadBtn = document.getElementById("reloadBtn");
+
+  function showMessage(text, ok=true) {
+    msgBox.innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "msg " + (ok ? "ok" : "err");
+    div.textContent = text;
+    msgBox.appendChild(div);
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  async function loadTutors() {
+    tbody.innerHTML = "";
+    try {
+      const res = await fetch(API_URL, { method: "GET" });
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        showMessage(json.error || "Errore nel caricamento.", false);
+        return;
+      }
+
+      for (const row of json.data) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(row.codice_tutor)}</td>
+          <td>${escapeHtml(row.cognome)}</td>
+          <td>${escapeHtml(row.nome)}</td>
+          <td>${escapeHtml(row.email)}</td>
+          <td>${escapeHtml(row.ruolo)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    } catch (e) {
+      showMessage("Errore di rete o server non raggiungibile.", false);
+    }
+  }
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+
+    const fd = new FormData(form);
+    const payload = {
+      cognome: fd.get("cognome"),
+      nome: fd.get("nome"),
+      email: fd.get("email"),
+      ruolo: fd.get("ruolo"),
+    };
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        showMessage(json.error || "Inserimento fallito.", false);
+        return;
+      }
+
+      showMessage(`Inserito con codice_tutor = ${json.codice_tutor}`, true);
+      form.reset();
+      await loadTutors();
+    } catch (e) {
+      showMessage("Errore di rete o server non raggiungibile.", false);
+    }
+  });
+
+  reloadBtn.addEventListener("click", loadTutors);
+
+  // primo caricamento
+  loadTutors();
+</script>
+
+</body>
+</html>
